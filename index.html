@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stroke Muse — Follow My Drawing Strokes</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#182342;background:#f4f6ff;--blue:#536dfe;--line:#dce3f3}
+*{box-sizing:border-box}body{margin:0}header,main{max-width:1100px;margin:auto;padding:10px}
+h1{font-size:1.4rem;font-weight:900;color:#2d438e;margin:0}header p{margin:3px 0;color:#536080;font-weight:600;font-size:.85rem}
+.intro{padding:9px;background:white;border:1px solid var(--line);border-radius:10px;font-size:.85rem;font-weight:600}
+.settings{position:sticky;top:0;background:#f4f6ff;z-index:3;padding:8px 0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px}h2{font-size:1rem;font-weight:900;margin:0}.hint{font-size:.76rem;font-weight:600;color:#596580;margin:4px 0}
+.badge{font-size:.72rem;font-weight:900;background:#dff8f1;color:#087969;border-radius:20px;padding:5px 8px;white-space:nowrap}
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:7px 0}
+button{font:800 .82rem/1.2 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;border:0;border-radius:8px;padding:9px 8px;cursor:pointer}
+.mode{background:#e9edfa;color:#263454;border:2px solid transparent}.mode.active{background:#e1e9ff;border-color:#536dfe;color:#243b91}
+.sliders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.slider label{display:flex;justify-content:space-between;gap:5px;font-size:.78rem;font-weight:850}.slider input{width:100%;accent-color:var(--blue)}
+.layout{display:grid;grid-template-columns:1fr 1fr;gap:8px}.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px;min-width:0}.panel h2{color:#263d85}.canvaswrap{position:relative;border:1px solid #d8e0f1;border-radius:8px;overflow:hidden;background:white;background-image:radial-gradient(#e2e7f5 .8px,transparent .8px);background-size:14px 14px}
+canvas{display:block;width:100%;height:clamp(180px,31vh,320px);touch-action:none}.tag{position:absolute;top:5px;right:5px;background:#fffffff0;border:1px solid var(--line);padding:4px 6px;border-radius:5px;font-size:.7rem;font-weight:900;pointer-events:none}
+.controls{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.primary{background:var(--blue);color:white}.green{background:#dff8f1;color:#087969}.pale{background:#edf0ff;color:#33478e}.quiet{background:#f0f2f8;color:#38435e}
+.status{font-size:.76rem;font-weight:650;line-height:1.4;background:#f5f7ff;padding:8px;border-radius:8px;margin-top:7px}
+@media(max-width:600px){header,main{padding:7px}header p{display:none}.intro{font-size:.76rem;padding:7px}.settings{padding:6px 0}.layout{gap:5px}.panel{padding:5px}.panel h2{font-size:.82rem}.hint{font-size:.68rem}.modes{gap:3px}.mode{font-size:.73rem;padding:8px 2px}.sliders{gap:7px}.slider label{font-size:.7rem}canvas{height:clamp(165px,29vh,255px)}button{font-size:.72rem;padding:8px 6px}.tag{font-size:.62rem}.status{font-size:.69rem}}
+@media(max-width:380px){h1{font-size:1.18rem}.mode{font-size:.66rem}canvas{height:150px}.controls{gap:3px}}
+</style>
+</head>
+<body>
+<header><h1>✦ Stroke Muse</h1><p>Give it a mark. Let it become something more.</p></header>
+<main>
+<div class="intro"><strong>Draw, then lift your finger.</strong> Your mark inspires a new composition but is not copied into the output.</div>
+<section class="settings"><div class="top"><div><h2>Choose an artistic direction</h2><div class="hint">Each style interprets your mark differently.</div></div><span class="badge">Creative engine</span></div>
+<div class="modes"><button class="mode active" data-mode="vine">🌿 Vine</button><button class="mode" data-mode="flow">〰 Flow</button><button class="mode" data-mode="bloom">🌸 Bloom</button><button class="mode" data-mode="circuit">⚡ Circuit</button></div>
+<div class="sliders"><div class="slider"><label>Expansion <output id="sv">65%</output></label><input id="strength" type="range" min="20" max="100" value="65"></div><div class="slider"><label>Detail <output id="dv">6</output></label><input id="detail" type="range" min="2" max="12" value="6"></div><div class="slider"><label>Chaos <output id="cv">50%</output></label><input id="chaos" type="range" min="0" max="100" value="50"></div></div>
+</section>
+<div class="layout">
+<section class="panel"><h2>1 · Your seed drawing</h2><p class="hint">Draw a curve, symbol, or rough outline. The app will grow a new design from it.</p><div class="canvaswrap"><canvas id="src" aria-label="Draw your seed"></canvas><span class="tag">YOUR MARK</span></div><div class="controls"><button id="undo" class="pale">↶ Undo</button><button id="clear" class="quiet">Clear</button><button id="demo" class="quiet">Load sample</button></div></section>
+<section class="panel"><h2>2 · Creative output</h2><p class="hint">New strokes grow from points along your gesture; the original is hidden.</p><div class="canvaswrap"><canvas id="art" aria-label="Creative output"></canvas><span class="tag">CREATIVE OUTPUT</span></div><div class="controls"><button id="create" class="primary">✦ Generate</button><button id="again" class="pale">↻ Variation</button><button id="save" class="green">↓ Save PNG</button></div><div id="status" class="status" role="status">Draw a stroke on the left to begin.</div></section>
+</div>
+</main>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),src=$('src'),art=$('art'),sc=src.getContext('2d'),ac=art.getContext('2d');
+let strokes=[],live=null,mode='vine',seed=1,hasArt=false;
+const pal=['#536dfe','#00a896','#f07868','#e6aa37','#9275e8','#77cdbd','#a1acd2'];
+function dims(c){return {w:c.clientWidth,h:c.clientHeight}}
+function init(c,x){let r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);x.setTransform(d,0,0,d,0,0)}
+function clear(x,c){let d=dims(c);x.clearRect(0,0,d.w,d.h)}
+function rand(a,b){seed=(seed*1664525+1013904223)>>>0;return a+(b-a)*(seed/4294967296)}
+function line(x,pts,color,w=1.5){if(pts.length<2)return;x.save();x.beginPath();x.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)x.lineTo(pts[i].x,pts[i].y);x.strokeStyle=color;x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.stroke();x.restore()}
+function smooth(x,p,c,w=1.5){if(p.length<3)return line(x,p,c,w);x.save();x.beginPath();x.moveTo(p[0].x,p[0].y);for(let i=1;i<p.length-1;i++){let m={x:(p[i].x+p[i+1].x)/2,y:(p[i].y+p[i+1].y)/2};x.quadraticCurveTo(p[i].x,p[i].y,m.x,m.y)}x.lineTo(p.at(-1).x,p.at(-1).y);x.strokeStyle=c;x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.stroke();x.restore()}
+function redraw(){clear(sc,src);strokes.forEach(s=>line(sc,s,'#23345f',3));if(live)line(sc,live,'#23345f',3)}
+function pos(e){let r=src.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+src.addEventListener('pointerdown',e=>{live=[pos(e)];src.setPointerCapture(e.pointerId);redraw()});
+src.addEventListener('pointermove',e=>{if(!live)return;let p=pos(e),q=live.at(-1);if(Math.hypot(p.x-q.x,p.y-q.y)>1.5)live.push(p);redraw()});
+function end(){if(!live)return;if(live.length>1)strokes.push(live);live=null;redraw();if(strokes.length)generate()}
+src.addEventListener('pointerup',end);src.addEventListener('pointercancel',end);
+function tangent(p,i){let a=p[Math.max(0,i-1)],b=p[Math.min(p.length-1,i+1)];return Math.atan2(b.y-a.y,b.x-a.x)}
+function leaf(x,p,a,r,c){x.save();x.translate(p.x,p.y);x.rotate(a);x.beginPath();x.moveTo(0,0);x.quadraticCurveTo(r,-r*.8,r*1.7,0);x.quadraticCurveTo(r,r*.8,0,0);x.fillStyle=c+'55';x.strokeStyle=c;x.lineWidth=1;x.fill();x.stroke();x.restore()}
+function dot(x,p,r,c,alpha=.22){x.save();x.globalAlpha=alpha;x.fillStyle=c;x.beginPath();x.arc(p.x,p.y,r,0,Math.PI*2);x.fill();x.restore()}
+function generate(){
+ if(!strokes.length){$('status').textContent='Draw part of a curve or shape first.';return}
+ seed=(Date.now()^Math.floor(Math.random()*1e9))>>>0;let d=dims(art),sd=dims(src),sx=d.w/sd.w,sy=d.h/sd.h;
+ let ss=strokes.map(s=>s.map(p=>({x:p.x*sx,y:p.y*sy}))),pts=ss.flat(),amount=+$('strength').value/65,detail=+$('detail').value,chaos=+$('chaos').value/100;
+ clear(ac,art);for(let i=0;i<40+chaos*75;i++)dot(ac,{x:rand(0,d.w),y:rand(0,d.h)},rand(1,4+chaos*3),pal[Math.floor(rand(0,pal.length))],rand(.05,.16));
+ ss.forEach(s=>{
+  let step=Math.max(2,Math.floor(s.length/Math.max(8,detail*2)));
+  s.forEach((p,i)=>{if(i%step)return;let a=tangent(s,i),r=rand(8,24)*amount;
+   if(mode==='vine'){leaf(ac,p,a+rand(-1.4,1.4),r,pal[Math.floor(rand(0,pal.length))]);}
+   if(mode==='bloom'){for(let k=0;k<7;k++){let z=a+k*Math.PI*2/7;line(ac,[p,{x:p.x+Math.cos(z)*r,y:p.y+Math.sin(z)*r}],pal[(i+k)%pal.length],1.2)}}
+   if(mode==='circuit'){let q={x:p.x+Math.cos(a+Math.PI/2)*r,y:p.y+Math.sin(a+Math.PI/2)*r};line(ac,[p,{x:q.x,y:p.y},q],pal[i%pal.length],1.3);dot(ac,q,2.5,pal[(i+2)%pal.length],.9)}
+   if(mode==='flow'){let q=[];for(let k=0;k<12;k++){let t=k/11;q.push({x:p.x+Math.cos(a)*t*r*2+Math.sin(t*7+i)*r*.22,y:p.y+Math.sin(a)*t*r*2+Math.cos(t*6+i)*r*.22})}smooth(ac,q,pal[i%pal.length],1.4)}
+  });
+  for(let branch=0;branch<Math.max(4,detail*(.5+chaos));branch++){
+   let i=Math.floor(rand(0,s.length)),p=s[i],a=tangent(s,i)+rand(-2.8,2.8),len=rand(28,85)*amount*(.5+chaos),q=[p],xx=p.x,yy=p.y;
+   for(let k=0;k<20;k++){a+=rand(-.55,.55)*(.3+chaos);xx+=Math.cos(a)*len/20;yy+=Math.sin(a)*len/20;q.push({x:xx,y:yy})}
+   let c=pal[Math.floor(rand(0,pal.length))];smooth(ac,q,c,rand(1,2.2));
+   if(mode==='vine')for(let k=3;k<q.length-2;k+=4)leaf(ac,q[k],tangent(q,k)+rand(-1,1),rand(7,15)*amount,c);
+   if(mode==='bloom')for(let k=4;k<q.length-2;k+=5)for(let z=0;z<5;z++){let v=q[k],a2=z*Math.PI*2/5;line(ac,[v,{x:v.x+Math.cos(a2)*7,y:v.y+Math.sin(a2)*7}],c,1)}
+   if(mode==='circuit')for(let k=3;k<q.length-2;k+=4)dot(ac,q[k],2.5,pal[(k+2)%pal.length],.8);
+  }
+ });
+ hasArt=true;const names={vine:'Vine grown',flow:'Flow extended',bloom:'Bloom grown',circuit:'Circuit expanded'};$('status').innerHTML='<b>'+names[mode]+'!</b> The original stroke is hidden. Change Chaos for wilder growth.';
+}
+document.querySelectorAll('.mode').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.mode').forEach(q=>q.classList.remove('active'));b.classList.add('active');mode=b.dataset.mode;if(strokes.length)generate()}));
+[['strength','sv','%'],['detail','dv',''],['chaos','cv','%']].forEach(([id,out,suf])=>$(id).addEventListener('input',e=>{$(out).textContent=e.target.value+suf;if(strokes.length)generate()}));
+$('create').onclick=generate;$('again').onclick=generate;
+$('undo').onclick=()=>{strokes.pop();redraw();if(strokes.length)generate();else{clear(ac,art);hasArt=false}};
+$('clear').onclick=()=>{strokes=[];live=null;redraw();clear(ac,art);hasArt=false;$('status').textContent='Canvas cleared. Draw a new seed.'};
+$('demo').onclick=()=>{let d=dims(src);strokes=[Array.from({length:45},(_,i)=>{let t=i/44;return{x:d.w*(.22+t*.55),y:d.h*(.55-Math.sin(t*Math.PI*1.5)*d.h*.25)}})];redraw();generate()};
+$('save').onclick=()=>{if(!hasArt)return;let a=document.createElement('a');a.download='stroke-muse-artwork.png';a.href=art.toDataURL('image/png');a.click()};
+function resize(){init(src,sc);init(art,ac);redraw();if(hasArt)generate()}window.addEventListener('resize',resize);init(src,sc);init(art,ac);
+})();
+</script>
+</body></html>
